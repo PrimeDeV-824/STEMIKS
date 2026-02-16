@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <title>STEMiks favicon</title>
+  <rect width="128" height="128" rx="20" fill="transparent" />
+  <!-- Four colored ring segments (approximate Google-style G) -->
+  <g stroke-width="18" fill="none" stroke-linecap="round">
+    <!-- Blue (top-right) -->
+    <circle cx="64" cy="64" r="40" stroke="#4285F4" stroke-dasharray="63 188" stroke-dashoffset="0" />
+    <!-- Red (top-left) -->
+    <circle cx="64" cy="64" r="40" stroke="#EA4335" stroke-dasharray="63 188" stroke-dashoffset="-63" />
+    <!-- Yellow (bottom-right) -->
+    <circle cx="64" cy="64" r="40" stroke="#FBBC05" stroke-dasharray="63 188" stroke-dashoffset="-126" />
+    <!-- Green (bottom-left) -->
+    <circle cx="64" cy="64" r="40" stroke="#34A853" stroke-dasharray="63 188" stroke-dashoffset="-189" />
+  </g>
+  <!-- Inner white circle to create ring -->
+  <circle cx="64" cy="64" r="24" fill="#ffffff" />
+  <!-- Cutout to form a 'G' gap on the right -->
+  <rect x="74" y="54" width="24" height="20" rx="6" fill="#ffffff" transform="rotate(0 86 64)" />
+</svg>

@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  name          String?
+  image         String?
+  passwordHash  String?
+  walletAddress String?   @unique
+
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  totalScore    Int       @default(0)
+  streak        Int       @default(0)
+  longestStreak Int       @default(0)
+  lastActiveAt  DateTime  @default(now())
+  coins         Int       @default(100)
+
+  accounts        Account[]
+  sessions        Session[]
+  quizAttempts    QuizAttempt[]
+  achievements    UserAchievement[]
+  subjectProgress SubjectProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([xp])
+  @@index([totalScore])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Question {
+  id          String     @id @default(cuid())
+  subject     Subject
+  difficulty  Difficulty
+  question    String     @db.Text
+  options     Json
+  answer      String
+  explanation String     @db.Text
+  imageUrl    String?
+  tags        String[]
+  points      Int        @default(10)
+  timeLimit   Int        @default(30)
+
+  quizAttemptItems QuizAttemptItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subject, difficulty])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     Subject
+  mode        QuizMode @default(CLASSIC)
+  score       Int      @default(0)
+  xpEarned    Int      @default(0)
+  coinsEarned Int      @default(0)
+  timeTaken   Int
+  accuracy    Float
+  completed   Boolean  @default(false)
+
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items QuizAttemptItem[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, subject])
+}
+
+model QuizAttemptItem {
+  id         String  @id @default(cuid())
+  attemptId  String
+  questionId String
+  userAnswer String
+  isCorrect  Boolean
+  timeTaken  Int
+
+  attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id])
+}
+
+model SubjectProgress {
+  id        String  @id @default(cuid())
+  userId    String
+  subject   Subject
+  xp        Int     @default(0)
+  level     Int     @default(1)
+  quizCount Int     @default(0)
+  avgScore  Float   @default(0)
+  bestScore Int     @default(0)
+  accuracy  Float   @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, subject])
+}
+
+model Achievement {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  description String
+  icon        String
+  category    AchievementCategory
+  condition   Json
+  xpReward    Int                 @default(50)
+  coinsReward Int                 @default(25)
+  rarity      Rarity              @default(COMMON)
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  earnedAt      DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+}
+
+enum Subject {
+  SCIENCE
+  TECHNOLOGY
+  ENGINEERING
+  MATHEMATICS
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum QuizMode {
+  CLASSIC
+  TIME_ATTACK
+  SURVIVAL
+}
+
+enum AchievementCategory {
+  STREAK
+  SCORE
+  SUBJECT_MASTERY
+  SPEED
+  SOCIAL
+  SPECIAL
+}
+
+enum Rarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
