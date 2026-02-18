@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Helper function to shuffle an array using Fisher-Yates algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
@@ -42,10 +52,26 @@ export async function GET(req: NextRequest) {
       take: count * 2, // get more then shuffle
     });
 
-    // Shuffle and limit
-    const shuffled = questions.sort(() => Math.random() - 0.5).slice(0, count);
+    // Shuffle questions and limit to requested count
+    const shuffledQuestions = questions.sort(() => Math.random() - 0.5).slice(0, count);
 
-    return NextResponse.json({ questions: shuffled });
+    // Shuffle options for each question to randomize answer positions
+    const questionsWithShuffledOptions = shuffledQuestions.map((q) => {
+      const optionsArray = Array.isArray(q.options)
+        ? q.options
+        : typeof q.options === "string"
+          ? JSON.parse(q.options as string)
+          : Array.isArray(Object.values(q.options))
+            ? Object.values(q.options)
+            : [];
+
+      return {
+        ...q,
+        options: shuffleArray(optionsArray as string[]),
+      };
+    });
+
+    return NextResponse.json({ questions: questionsWithShuffledOptions });
   } catch (err) {
     console.error("[GET /api/quiz]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
