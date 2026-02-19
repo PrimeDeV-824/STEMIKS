@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
         ? q.options
         : typeof q.options === "string"
           ? JSON.parse(q.options as string)
-          : Array.isArray(Object.values(q.options))
+          : q.options && typeof q.options === "object"
             ? Object.values(q.options)
             : [];
 
