@@ -28,13 +28,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { question, subject, difficulty } = await req.json();
+    const { question, subject, difficulty, options } = await req.json();
 
     if (!question || !subject || !difficulty) {
       return NextResponse.json({ error: "Missing question, subject, or difficulty" }, { status: 400 });
     }
 
-    const hint = await generateHint(question, subject, difficulty);
+    const hint = await generateHint(question, subject, difficulty, options ?? []);
 
     await prisma.user.update({
       where: { id: userId },

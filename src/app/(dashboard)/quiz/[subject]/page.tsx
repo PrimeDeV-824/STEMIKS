@@ -38,29 +38,43 @@ export default function QuizGamePage() {
   const [hint, setHint] = useState<string | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [showSolutions, setShowSolutions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const questionStartRef = useRef(Date.now());
   const totalStartRef = useRef(Date.now());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load questions
-  useEffect(() => {
+  // Load questions function (reusable for initial load and "Play Again")
+  const loadQuestions = useCallback(async () => {
     if (!cfg) { router.replace("/quiz"); return; }
-    fetch(`/api/quiz?subject=${subject.toUpperCase()}&count=10`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.questions?.length) {
-          setQuestions(d.questions);
-          setPhase("quiz");
-          totalStartRef.current = Date.now();
-        } else {
-          toast.error("No questions found for this subject");
-          router.push("/quiz");
-        }
-      })
-      .catch(() => { toast.error("Failed to load quiz"); router.push("/quiz"); });
-  }, [subject]);
+    try {
+      const response = await fetch(`/api/quiz?subject=${subject.toUpperCase()}&count=10`);
+      const data = await response.json();
+      if (data.questions?.length) {
+        setQuestions(data.questions);
+        setCurrentIdx(0);
+        setAnswers([]);
+        setSelected(null);
+        setLocked(false);
+        setHint(null);
+        setHintLoading(false);
+        setPhase("quiz");
+        totalStartRef.current = Date.now();
+      } else {
+        toast.error("No questions found for this subject");
+        router.push("/quiz");
+      }
+    } catch {
+      toast.error("Failed to load quiz");
+      router.push("/quiz");
+    }
+  }, [cfg, router, subject]);
+
+  // Load questions on mount
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
 
   const current = questions[currentIdx];
 
@@ -154,10 +168,23 @@ export default function QuizGamePage() {
     if (!current || hintLoading || hint) return;
     setHintLoading(true);
     try {
+      // normalize options to array
+      const optionsArr = (() => {
+        const raw = current?.options as unknown;
+        if (!raw) return [] as string[];
+        if (Array.isArray(raw)) return raw as string[];
+        if (typeof raw === "string") {
+          try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) return parsed.map(String); } catch (e) {}
+          return [raw];
+        }
+        if (typeof raw === "object") return Object.values(raw as Record<string, unknown>).map(String);
+        return [String(raw)];
+      })();
+
       const res = await fetch("/api/ai/hint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: current.question, subject: current.subject, difficulty: current.difficulty }),
+        body: JSON.stringify({ question: current.question, subject: current.subject, difficulty: current.difficulty, options: optionsArr }),
       });
       const data = await res.json();
       if (data.error) toast.error(data.error);
@@ -214,13 +241,13 @@ export default function QuizGamePage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-emerald-400">
-                {result.gradedAnswers?.filter((a: any) => a.isCorrect).length ?? 0}
+                {result.gradedAnswers?.filter((a: any) => a.isCorrect).length ?? 0}/{result.gradedAnswers?.length ?? 0}
               </p>
-              <p className="text-xs text-slate-400">Correct</p>
+              <p className="text-xs text-slate-400">Correct Answers</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{result.timeTaken}s</p>
-              <p className="text-xs text-slate-400">Time</p>
+              <p className="text-xs text-slate-400">Time Taken</p>
             </div>
           </div>
         </div>
@@ -233,7 +260,7 @@ export default function QuizGamePage() {
 
         <div className="flex gap-3">
           <button
-            onClick={() => { setPhase("quiz"); setCurrentIdx(0); setAnswers([]); setLocked(false); setSelected(null); setResult(null); }}
+            onClick={() => { setResult(null); loadQuestions(); }}
             className="flex-1 py-3 glass border border-white/10 rounded-xl font-semibold hover:bg-white/6 transition-all"
           >
             Play Again
@@ -244,6 +271,56 @@ export default function QuizGamePage() {
           >
             Dashboard <ArrowRight className="w-4 h-4" />
           </button>
+        </div>
+        <div className="mt-4">
+          <button
+            onClick={() => setShowSolutions((s) => !s)}
+            className={`w-full py-3.5 glass border-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${showSolutions ? 'border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20' : 'border-white/10 hover:bg-white/6 text-slate-300 hover:text-white'}`}
+          >
+            <span className="text-lg">{showSolutions ? '📖' : '🎓'}</span>
+            {showSolutions ? "Hide Solutions & Explanations" : "📚 View Solutions & Explanations"}
+          </button>
+
+          {showSolutions && (
+            <div className="mt-4 space-y-4">
+              {(result.gradedAnswers ?? []).map((ga: any, idx: number) => {
+                const q = questions.find((qq) => qq.id === ga.questionId);
+                return (
+                  <div key={ga.questionId} className={`glass p-5 rounded-xl border transition-all ${ga.isCorrect ? 'border-emerald-500/30 bg-emerald-500/8' : 'border-red-500/30 bg-red-500/8'}`}>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-bold text-slate-400">Question {idx + 1}</span>
+                          <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${ga.isCorrect ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>
+                            {ga.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                          </span>
+                        </div>
+                        <p className="font-semibold text-base leading-relaxed text-slate-100">{q?.question ?? "(question)"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2.5 mb-3 pl-4 border-l-2 border-white/10">
+                      <div>
+                        <p className="text-xs font-medium text-slate-400 mb-1">Your Answer</p>
+                        <p className={`text-sm font-medium ${ga.isCorrect ? 'text-emerald-300' : 'text-red-300'}`}>{ga.answer || '—'}</p>
+                      </div>
+                      {!ga.isCorrect && (
+                        <div>
+                          <p className="text-xs font-medium text-slate-400 mb-1">Correct Answer</p>
+                          <p className="text-sm font-bold text-emerald-400">{ga.correctAnswer}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="bg-white/5 rounded-lg p-3.5 border border-white/10">
+                      <p className="text-xs font-semibold text-blue-300 mb-2">💡 Explanation</p>
+                      <p className="text-sm leading-relaxed text-slate-200">{ga.explanation || 'No explanation available'}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     );

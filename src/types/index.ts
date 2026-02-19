@@ -34,6 +34,8 @@ export interface QuizResult {
     answer: string;
     isCorrect: boolean;
     timeTaken: number;
+    explanation?: string;
+    correctAnswer?: string;
   }>;
 }
 

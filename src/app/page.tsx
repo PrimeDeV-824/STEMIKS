@@ -18,10 +18,10 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "24", label: "Questions in Seed DB" },
-  { value: "4", label: "STEM Subjects" },
-  { value: "∞", label: "Growth Potential" },
-  { value: "100%", label: "Open Source" },
+  { value: "24+", label: "Curated STEM Questions", extra: "And growing every week!", icon: "📚" },
+  { value: "4", label: "STEM Subjects", extra: "Science · Technology · Engineering · Math", icon: "🎯" },
+  { value: "∞", label: "Growth Potential", extra: "Master any topic at your pace", icon: "🚀" },
+  { value: "100%", label: "Open Source", extra: "Community contributions welcome", icon: "💻", href: "https://github.com/PrimeDeV-824/STEMIKS", isButton: true },
 ];
 
 export default function LandingPage() {
@@ -97,9 +97,16 @@ export default function LandingPage() {
           {/* Stats bar */}
           <div id="stats" className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
             {STATS.map((s) => (
-              <div key={s.label} className="glass rounded-2xl p-4 border border-white/5">
-                <p className="text-3xl font-black gradient-text">{s.value}</p>
-                <p className="text-sm text-slate-400 mt-1">{s.label}</p>
+              <div key={s.label} className={`glass rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.03] flex flex-col items-center justify-center text-center gap-3 min-h-[200px] ${s.isButton ? 'bg-gradient-to-br from-violet-500/10 to-cyan-500/10 border-violet-500/30 hover:border-cyan-500/50' : ''}`}>
+                {s.icon && <div className="text-3xl">{s.icon}</div>}
+                <p className={`${s.isButton ? 'text-2xl gradient-text font-black' : 'text-4xl md:text-5xl font-black gradient-text'}`}>{s.value}</p>
+                <p className="text-sm md:text-base text-slate-300 font-semibold leading-snug">{s.label}</p>
+                {s.extra && <p className="text-xs text-slate-400 leading-relaxed">{s.extra}</p>}
+                {s.href ? (
+                  <a href={s.href} target="_blank" rel="noreferrer" className={`mt-2 ${s.isButton ? 'px-4 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 rounded-lg text-xs font-bold hover:opacity-90 transition-all hover:scale-[1.05]' : 'px-3 py-1.5 bg-white/6 rounded-full text-xs font-semibold hover:bg-white/12 transition-colors'}`}>
+                    {s.isButton ? '⭐ View on GitHub' : 'GitHub'}
+                  </a>
+                ) : null}
               </div>
             ))}
           </div>

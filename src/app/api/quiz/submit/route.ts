@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       const isCorrect = q.answer === a.answer;
       if (isCorrect) earnedPoints += q.points;
       totalPoints += q.points;
-      return { ...a, isCorrect };
+      return { ...a, isCorrect, explanation: q.explanation, correctAnswer: q.answer };
     });
 
     const accuracy = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
